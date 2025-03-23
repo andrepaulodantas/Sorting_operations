@@ -35,6 +35,8 @@ public class SecurityConfig {
             .authorizeRequests()
                 // Allow all product-related endpoints without authentication
                 .antMatchers("/products/**", "/filter/**", "/sort/**").permitAll()
+                // Allow Swagger UI and OpenAPI docs
+                .antMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**").permitAll()
                 // Allow OPTIONS requests without authentication for CORS preflight
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Anything else requires authentication

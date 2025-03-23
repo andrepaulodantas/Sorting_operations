@@ -1,5 +1,6 @@
 package com.productapi.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,35 +11,42 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Product information")
 public class Product {
     
     /**
      * The unique identifier of the product
      */
+    @Schema(description = "Product barcode (unique identifier)", example = "74001755", required = true)
     private String barcode;
     
     /**
      * The name of the product
      */
+    @Schema(description = "Product name", example = "Ball Gown", required = true)
     private String item;
     
     /**
      * The product category
      */
+    @Schema(description = "Product category", example = "Full Body Outfits")
     private String category;
     
     /**
      * The price of the product
      */
+    @Schema(description = "Product price in cents", example = "3548")
     private Integer price;
     
     /**
      * The discount percentage on the product
      */
+    @Schema(description = "Discount percentage", example = "7", minimum = "0", maximum = "100")
     private Integer discount;
     
     /**
      * Availability status (0 for unavailable, 1 for available)
      */
+    @Schema(description = "Availability status (0 = unavailable, 1 = available)", example = "1", allowableValues = {"0", "1"})
     private Integer available;
 } 

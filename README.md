@@ -51,6 +51,28 @@ The backend service provides a REST API built with Spring Boot that supports:
 - **Filtering**: Filter products by price range
 - **Sorting**: Sort products by price
 - **Authentication**: Secure endpoints with basic and JWT authentication
+- **API Documentation**: Interactive documentation with Swagger UI
+
+### API Documentation
+
+The API is documented using Swagger (OpenAPI), which provides:
+
+- Interactive API testing interface
+- Detailed endpoint descriptions
+- Request/response schemas
+- Authentication requirements
+
+You can access the Swagger UI at:
+
+```
+http://localhost:8080/swagger-ui.html
+```
+
+The raw OpenAPI specification is available at:
+
+```
+http://localhost:8080/api-docs
+```
 
 ### API Endpoints
 
@@ -144,6 +166,7 @@ Test the API functionality with the provided script:
 - **In-memory storage**: Used for simplicity, can be replaced with MongoDB
 - **Spring Security**: Secures the API endpoints
 - **JWT Authentication**: Used for stateless authentication
+- **Swagger/OpenAPI**: For API documentation and testing
 
 ### Frontend
 
