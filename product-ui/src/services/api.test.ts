@@ -37,40 +37,42 @@ describe("API Service", () => {
   // Frontend product format
   const mockFrontendProducts: Product[] = [
     {
-      barcode: "74001234",
-      name: "Test Product 1",
-      category: "Test Category",
-      price: 1999,
-      discount: 10,
+      barcode: "74001755",
+      name: "Ball Gown",
+      category: "Full Body Outfits",
+      price: 3548,
+      discount: 7,
       available: true,
     },
     {
-      barcode: "74005678",
-      name: "Test Product 2",
-      category: "Test Category",
-      price: 2999,
+      barcode: "74001756",
+      name: "Summer Dress",
+      category: "Full Body Outfits",
+      price: 2500,
       discount: 5,
-      available: false,
+      available: true,
     },
   ];
 
   // Backend product format
   const mockBackendProducts = [
     {
-      barcode: "74001234",
-      item: "Test Product 1", // backend uses 'item'
-      category: "Test Category",
-      price: 1999,
-      discount: 10,
+      barcode: "74001755",
+      item: "Ball Gown", // backend uses 'item'
+      category: "Full Body Outfits",
+      price: 3548,
+      discount: 7,
       available: 1, // backend uses 0/1
+      finalPrice: 3300, // backend calculates this
     },
     {
-      barcode: "74005678",
-      item: "Test Product 2",
-      category: "Test Category",
-      price: 2999,
+      barcode: "74001756",
+      item: "Summer Dress",
+      category: "Full Body Outfits",
+      price: 2500,
       discount: 5,
-      available: 0,
+      available: 1,
+      finalPrice: 2375,
     },
   ];
 
@@ -229,23 +231,23 @@ describe("API Service", () => {
   });
 
   it("getProductsByPriceRange should filter products by price range", async () => {
-    const minPrice = 1000;
-    const maxPrice = 2000;
+    const minPrice = 2000;
+    const maxPrice = 3500;
 
     mockAxios
       .onGet(`/filter/price/${minPrice}/${maxPrice}`)
-      .reply(200, [mockBackendProducts[0]]);
+      .reply(200, [mockBackendProducts[1]]);
 
     vi.mocked(ProductAdapter.toFrontendList).mockReturnValue([
-      mockFrontendProducts[0],
+      mockFrontendProducts[1],
     ]);
 
     const response = await getProductsByPriceRange(minPrice, maxPrice);
 
     expect(response.status).toBe(200);
-    expect(response.data).toEqual([mockFrontendProducts[0]]);
+    expect(response.data).toEqual([mockFrontendProducts[1]]);
     expect(ProductAdapter.toFrontendList).toHaveBeenCalledWith([
-      mockBackendProducts[0],
+      mockBackendProducts[1],
     ]);
   });
 
