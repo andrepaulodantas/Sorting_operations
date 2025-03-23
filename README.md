@@ -158,6 +158,65 @@ Test the API functionality with the provided script:
 ./test_api.sh
 ```
 
+## Testing
+
+The project includes a comprehensive test suite for both backend and frontend components:
+
+### Running Tests
+
+A unified test script is provided to run all tests:
+
+```bash
+./run-tests.sh
+```
+
+This script will:
+
+1. Run all backend tests with code coverage reporting
+2. Run all frontend tests with code coverage reporting
+3. Provide a summary of test results
+
+### Backend Tests
+
+The backend tests include:
+
+- **Unit Tests**: Testing individual components in isolation
+
+  - Service layer tests for business logic
+  - Controller tests for API endpoints
+  - Model validation tests
+
+- **Integration Tests**: Testing interaction between components
+  - Full API endpoint testing with MockMvc
+  - Request/response validation
+  - Error handling verification
+
+Code coverage is provided using JaCoCo, with reports available at `product-api/target/site/jacoco/index.html`.
+
+### Frontend Tests
+
+The frontend test suite includes:
+
+- **Component Tests**: Testing React components in isolation
+
+  - Rendering tests
+  - User interaction tests
+  - State management tests
+
+- **Redux Tests**: Testing state management
+
+  - Action creators
+  - Reducers
+  - Selectors
+  - Async thunks
+
+- **Service Tests**: Testing API integration
+  - API service method tests
+  - Error handling
+  - Response processing
+
+Frontend tests use Vitest with React Testing Library, with code coverage reports available at `product-ui/coverage/index.html`.
+
 ## Technical Decisions
 
 ### Backend
