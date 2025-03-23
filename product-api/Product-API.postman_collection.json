@@ -1,0 +1,70 @@
+{
+  "info": {
+    "_postman_id": "4f3f8bea-4c5a-4d78-ac3e-f36be9d2ca11",
+    "name": "Product API",
+    "description": "Collection for testing the Product API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Filter Products by Price Range",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8080/filter/price/1000/4000",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["filter", "price", "1000", "4000"]
+        },
+        "description": "Filters products by a price range (min to max)"
+      },
+      "response": []
+    },
+    {
+      "name": "Sort Products by Price",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8080/sort/price",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["sort", "price"]
+        },
+        "description": "Returns product names sorted by price in ascending order"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Products",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8080/products",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["products"]
+        },
+        "description": "Returns all products in the database"
+      },
+      "response": []
+    },
+    {
+      "name": "Invalid Price Range (Bad Request)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8080/filter/price/abc/xyz",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["filter", "price", "abc", "xyz"]
+        },
+        "description": "Tests error handling with invalid price range parameters"
+      },
+      "response": []
+    }
+  ]
+}

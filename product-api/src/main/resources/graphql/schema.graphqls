@@ -1,0 +1,153 @@
+type Query {
+  # User queries
+  currentUser: User
+  userById(id: ID!): User
+  searchUsers(query: String!): [User!]
+
+  # Message queries
+  conversationById(id: ID!): Conversation
+  userConversations: [Conversation!]
+  messagesByConversation(conversationId: ID!): [Message!]
+
+  # Product queries (existing functionality)
+  products: [Product!]
+  productByBarcode(barcode: ID!): Product
+  filterProductsByPrice(minPrice: Int!, maxPrice: Int!): [Product!]
+  sortProductsByPrice: [String!]
+}
+
+type Mutation {
+  # User mutations
+  register(input: RegisterInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+  logout: Boolean!
+  updateUser(input: UpdateUserInput!): User!
+
+  # Message mutations
+  createConversation(input: ConversationInput!): Conversation!
+  sendMessage(input: MessageInput!): Message!
+  markMessageRead(messageId: ID!): Boolean!
+
+  # Product mutations (existing functionality)
+  createProduct(input: ProductInput!): Product!
+  updateProduct(barcode: ID!, input: ProductInput!): Product!
+  deleteProduct(barcode: ID!): Boolean!
+}
+
+type Subscription {
+  # Message subscriptions for real-time updates
+  messageReceived(userId: ID!): Message!
+  conversationUpdated(userId: ID!): Conversation!
+  userStatusChanged(userId: ID!): User!
+}
+
+# User types
+type User {
+  id: ID!
+  username: String!
+  email: String
+  fullName: String
+  role: String!
+  connections: [String!]
+  online: Boolean!
+  profilePicture: String
+  lastActive: Long
+}
+
+# Message types
+type Message {
+  id: ID!
+  senderId: ID!
+  recipientId: ID!
+  content: String!
+  timestamp: Long!
+  read: Boolean!
+  type: MessageType!
+  attachmentUrl: String
+}
+
+type Conversation {
+  id: ID!
+  participants: [String!]!
+  title: String
+  createdAt: Long!
+  lastActivity: Long!
+  isGroup: Boolean!
+  iconUrl: String
+  lastMessageId: String
+  participantStatus: [ParticipantStatus!]!
+}
+
+type ParticipantStatus {
+  userId: String!
+  unreadCount: Int!
+  lastSeen: Long!
+}
+
+# Product types (existing functionality)
+type Product {
+  barcode: ID!
+  item: String!
+  category: String!
+  price: Int!
+  discount: Int!
+  available: Int!
+}
+
+# Enums
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  AUDIO
+  VIDEO
+}
+
+# Input types
+input RegisterInput {
+  username: String!
+  password: String!
+  email: String!
+  fullName: String
+}
+
+input LoginInput {
+  username: String!
+  password: String!
+}
+
+input UpdateUserInput {
+  email: String
+  fullName: String
+  profilePicture: String
+}
+
+input ConversationInput {
+  participants: [String!]!
+  title: String
+  isGroup: Boolean
+  iconUrl: String
+}
+
+input MessageInput {
+  conversationId: ID!
+  content: String!
+  type: MessageType!
+  attachmentUrl: String
+}
+
+input ProductInput {
+  item: String!
+  category: String!
+  price: Int!
+  discount: Int!
+  available: Int!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+# Custom scalars
+scalar Long
