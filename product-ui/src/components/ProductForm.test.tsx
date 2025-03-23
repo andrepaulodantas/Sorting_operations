@@ -1,92 +1,87 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
-import ProductForm from "./ProductForm";
-import { Product } from "../types/Product";
+import { ProductForm } from "./ProductForm";
+import { Product } from "../types/product";
 import userEvent from "@testing-library/user-event";
-
-// Mock the API service
-jest.mock("../services/api", () => ({
-  createProduct: jest.fn().mockResolvedValue({ status: 201 }),
-  updateProduct: jest.fn().mockResolvedValue({ status: 200 }),
-}));
 
 describe("ProductForm Component", () => {
   const mockProduct: Product = {
     barcode: "74001234",
-    item: "Test Product",
+    name: "Test Product",
     category: "Test Category",
     price: 1999,
     discount: 10,
-    available: 1,
+    available: true,
   };
 
-  const mockOnSubmitSuccess = jest.fn();
-  const mockOnCancel = jest.fn();
+  const mockOnSubmit = vi.fn();
+  const mockOnCancel = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test("renders form with empty fields in create mode", () => {
-    render(
-      <ProductForm
-        mode="create"
-        onSubmitSuccess={mockOnSubmitSuccess}
-        onCancel={mockOnCancel}
-      />
-    );
+    render(<ProductForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
     // Check form elements are rendered
     expect(screen.getByLabelText(/Barcode/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Item/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Product Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Category/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Price/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Discount/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Available/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Product is in stock/i)).toBeInTheDocument();
 
     // Check buttons
-    expect(screen.getByRole("button", { name: /Submit/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Save Product/i })
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
 
     // Check fields are empty
     expect(screen.getByLabelText(/Barcode/i)).toHaveValue("");
-    expect(screen.getByLabelText(/Item/i)).toHaveValue("");
+    expect(screen.getByLabelText(/Product Name/i)).toHaveValue("");
   });
 
   test("renders form with product data in edit mode", () => {
     render(
       <ProductForm
-        mode="edit"
-        product={mockProduct}
-        onSubmitSuccess={mockOnSubmitSuccess}
+        initialData={mockProduct}
+        onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
       />
     );
 
     // Check fields are populated with product data
     expect(screen.getByLabelText(/Barcode/i)).toHaveValue(mockProduct.barcode);
-    expect(screen.getByLabelText(/Item/i)).toHaveValue(mockProduct.item);
+    expect(screen.getByLabelText(/Product Name/i)).toHaveValue(
+      mockProduct.name
+    );
     expect(screen.getByLabelText(/Category/i)).toHaveValue(
       mockProduct.category
     );
-    expect(screen.getByLabelText(/Price/i)).toHaveValue(
-      mockProduct.price.toString()
-    );
+    // Para campos numéricos, verificamos o valor como number
+    expect(screen.getByLabelText(/Price/i)).toHaveValue(mockProduct.price);
     expect(screen.getByLabelText(/Discount/i)).toHaveValue(
-      mockProduct.discount.toString()
+      mockProduct.discount
     );
 
-    // Check radio button for available=1 is selected
-    expect(screen.getByLabelText(/Yes/i)).toBeChecked();
+    // Check checkbox for available is checked
+    expect(screen.getByLabelText(/Product is in stock/i)).toBeChecked();
   });
 
   test("disables barcode field in edit mode", () => {
     render(
       <ProductForm
-        mode="edit"
-        product={mockProduct}
-        onSubmitSuccess={mockOnSubmitSuccess}
+        initialData={mockProduct}
+        onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
       />
     );
@@ -95,143 +90,127 @@ describe("ProductForm Component", () => {
   });
 
   test("submits form with valid data in create mode", async () => {
-    const { createProduct } = require("../services/api");
+    const user = userEvent.setup();
 
-    render(
-      <ProductForm
-        mode="create"
-        onSubmitSuccess={mockOnSubmitSuccess}
-        onCancel={mockOnCancel}
-      />
-    );
+    render(<ProductForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
     // Fill in the form
-    userEvent.type(screen.getByLabelText(/Barcode/i), "74009876");
-    userEvent.type(screen.getByLabelText(/Item/i), "New Product");
-    userEvent.type(screen.getByLabelText(/Category/i), "New Category");
-    userEvent.type(screen.getByLabelText(/Price/i), "1599");
-    userEvent.type(screen.getByLabelText(/Discount/i), "5");
-    userEvent.click(screen.getByLabelText(/Yes/i));
+    await user.type(screen.getByLabelText(/Barcode/i), "74009876");
+    await user.type(screen.getByLabelText(/Product Name/i), "New Product");
+    await user.type(screen.getByLabelText(/Category/i), "New Category");
+    await user.clear(screen.getByLabelText(/Price/i));
+    await user.type(screen.getByLabelText(/Price/i), "1599");
+    await user.clear(screen.getByLabelText(/Discount/i));
+    await user.type(screen.getByLabelText(/Discount/i), "5");
 
     // Submit the form
-    fireEvent.click(screen.getByRole("button", { name: /Submit/i }));
+    await user.click(screen.getByRole("button", { name: /Save Product/i }));
 
-    // Wait for the API call to resolve
-    await waitFor(() => {
-      expect(createProduct).toHaveBeenCalledWith({
-        barcode: "74009876",
-        item: "New Product",
-        category: "New Category",
-        price: 1599,
-        discount: 5,
-        available: 1,
-      });
-      expect(mockOnSubmitSuccess).toHaveBeenCalled();
+    // Check if onSubmit was called with the right data
+    expect(mockOnSubmit).toHaveBeenCalledWith({
+      barcode: "74009876",
+      name: "New Product",
+      category: "New Category",
+      price: 1599,
+      discount: 5,
+      available: true,
     });
   });
 
   test("submits form with valid data in edit mode", async () => {
-    const { updateProduct } = require("../services/api");
+    const user = userEvent.setup();
 
     render(
       <ProductForm
-        mode="edit"
-        product={mockProduct}
-        onSubmitSuccess={mockOnSubmitSuccess}
+        initialData={mockProduct}
+        onSubmit={mockOnSubmit}
         onCancel={mockOnCancel}
       />
     );
 
     // Update some fields
-    userEvent.clear(screen.getByLabelText(/Item/i));
-    userEvent.type(screen.getByLabelText(/Item/i), "Updated Product");
-    userEvent.clear(screen.getByLabelText(/Price/i));
-    userEvent.type(screen.getByLabelText(/Price/i), "2499");
-    userEvent.click(screen.getByLabelText(/No/i));
+    await user.clear(screen.getByLabelText(/Product Name/i));
+    await user.type(screen.getByLabelText(/Product Name/i), "Updated Product");
+    await user.clear(screen.getByLabelText(/Price/i));
+    await user.type(screen.getByLabelText(/Price/i), "2499");
+
+    // Click the checkbox to uncheck it (since it starts checked)
+    await user.click(screen.getByLabelText(/Product is in stock/i));
 
     // Submit the form
-    fireEvent.click(screen.getByRole("button", { name: /Submit/i }));
+    await user.click(screen.getByRole("button", { name: /Save Product/i }));
 
-    // Wait for the API call to resolve
-    await waitFor(() => {
-      expect(updateProduct).toHaveBeenCalledWith({
-        barcode: "74001234",
-        item: "Updated Product",
-        category: "Test Category",
-        price: 2499,
-        discount: 10,
-        available: 0,
-      });
-      expect(mockOnSubmitSuccess).toHaveBeenCalled();
+    // Check if onSubmit was called with the right data
+    expect(mockOnSubmit).toHaveBeenCalledWith({
+      barcode: "74001234",
+      name: "Updated Product",
+      category: "Test Category",
+      price: 2499,
+      discount: 10,
+      available: false,
     });
   });
 
   test("shows validation errors for empty required fields", async () => {
-    render(
-      <ProductForm
-        mode="create"
-        onSubmitSuccess={mockOnSubmitSuccess}
-        onCancel={mockOnCancel}
-      />
-    );
+    const user = userEvent.setup();
 
-    // Submit the form without filling in any fields
-    fireEvent.click(screen.getByRole("button", { name: /Submit/i }));
+    render(<ProductForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+
+    // Clear any default values and submit the form without filling required fields
+    await user.clear(screen.getByLabelText(/Barcode/i));
+    await user.clear(screen.getByLabelText(/Product Name/i));
+    await user.clear(screen.getByLabelText(/Category/i));
+
+    // Submit the form
+    await user.click(screen.getByRole("button", { name: /Save Product/i }));
 
     // Check validation errors
-    await waitFor(() => {
-      expect(screen.getByText(/Barcode is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/Item is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/Category is required/i)).toBeInTheDocument();
-      expect(screen.getByText(/Price is required/i)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/Barcode is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/Product name is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/Category is required/i)).toBeInTheDocument();
 
-    // API should not be called
-    const { createProduct } = require("../services/api");
-    expect(createProduct).not.toHaveBeenCalled();
+    // onSubmit should not be called
+    expect(mockOnSubmit).not.toHaveBeenCalled();
   });
 
   test("shows validation error for invalid price", async () => {
-    render(
-      <ProductForm
-        mode="create"
-        onSubmitSuccess={mockOnSubmitSuccess}
-        onCancel={mockOnCancel}
-      />
-    );
+    // First, render the form
+    render(<ProductForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Fill in the form with invalid price
-    userEvent.type(screen.getByLabelText(/Barcode/i), "74009876");
-    userEvent.type(screen.getByLabelText(/Item/i), "New Product");
-    userEvent.type(screen.getByLabelText(/Category/i), "New Category");
-    userEvent.type(screen.getByLabelText(/Price/i), "-100");
-    userEvent.type(screen.getByLabelText(/Discount/i), "5");
-
-    // Submit the form
-    fireEvent.click(screen.getByRole("button", { name: /Submit/i }));
-
-    // Check validation error for price
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Price must be greater than 0/i)
-      ).toBeInTheDocument();
+    // Fill in required fields
+    fireEvent.change(screen.getByLabelText(/Barcode/i), {
+      target: { value: "12345678" },
+    });
+    fireEvent.change(screen.getByLabelText(/Product Name/i), {
+      target: { value: "Test Product" },
+    });
+    fireEvent.change(screen.getByLabelText(/Category/i), {
+      target: { value: "Test Category" },
     });
 
-    // API should not be called
-    const { createProduct } = require("../services/api");
-    expect(createProduct).not.toHaveBeenCalled();
+    // Set a negative price
+    fireEvent.change(screen.getByLabelText(/Price \(\$\)/i), {
+      target: { value: "-100" },
+    });
+
+    // Submit the form
+    fireEvent.click(screen.getByRole("button", { name: /Save Product/i }));
+
+    // Check for error message
+    expect(
+      screen.getByText("Price must be a positive number")
+    ).toBeInTheDocument();
+
+    // onSubmit should not have been called
+    expect(mockOnSubmit).not.toHaveBeenCalled();
   });
 
-  test("calls onCancel when cancel button is clicked", () => {
-    render(
-      <ProductForm
-        mode="create"
-        onSubmitSuccess={mockOnSubmitSuccess}
-        onCancel={mockOnCancel}
-      />
-    );
+  test("calls onCancel when cancel button is clicked", async () => {
+    const user = userEvent.setup();
 
-    fireEvent.click(screen.getByRole("button", { name: /Cancel/i }));
+    render(<ProductForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+
+    await user.click(screen.getByRole("button", { name: /Cancel/i }));
     expect(mockOnCancel).toHaveBeenCalled();
   });
 });

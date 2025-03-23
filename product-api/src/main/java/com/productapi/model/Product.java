@@ -49,4 +49,17 @@ public class Product {
      */
     @Schema(description = "Availability status (0 = unavailable, 1 = available)", example = "1", allowableValues = {"0", "1"})
     private Integer available;
+    
+    /**
+     * Get the final price after discount
+     * 
+     * @return the price after discount is applied
+     */
+    @Schema(description = "Final price after applying discount", example = "3300")
+    public Integer getFinalPrice() {
+        if (price == null || discount == null) {
+            return price;
+        }
+        return Math.round(price * (100 - discount) / 100.0f);
+    }
 } 

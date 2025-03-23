@@ -1,11 +1,11 @@
-import { configureStore } from '@reduxjs/toolkit';
-import { productSlice } from './product.slice';
+import { configureStore } from "@reduxjs/toolkit";
+import productReducer from "./productSlice";
 
 export const store = configureStore({
   reducer: {
-    products: productSlice.reducer,
+    products: productReducer,
   },
-  middleware: (getDefaultMiddleware) => 
+  middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,
     }),
@@ -13,4 +13,4 @@ export const store = configureStore({
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch; 
+export type AppDispatch = typeof store.dispatch;

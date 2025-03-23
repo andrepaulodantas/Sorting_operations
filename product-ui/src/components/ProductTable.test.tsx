@@ -44,18 +44,18 @@ describe("ProductTable Component", () => {
 
     // Check table headers
     expect(screen.getByText("Barcode")).toBeInTheDocument();
-    expect(screen.getByText("Item Name")).toBeInTheDocument();
-    expect(screen.getByText("Category")).toBeInTheDocument();
-    expect(screen.getByText("Price")).toBeInTheDocument();
+    expect(screen.getByText("Name")).toBeInTheDocument();
+    expect(screen.getByText("Original Price")).toBeInTheDocument();
     expect(screen.getByText("Discount")).toBeInTheDocument();
-    expect(screen.getByText("Available")).toBeInTheDocument();
+    expect(screen.getByText("Final Price")).toBeInTheDocument();
+    expect(screen.getByText("Availability")).toBeInTheDocument();
 
     // Check product data
     expect(screen.getByText("Ball Gown")).toBeInTheDocument();
-    expect(screen.getByText("Accessories")).toBeInTheDocument();
     expect(screen.getByText("$35.48")).toBeInTheDocument();
     expect(screen.getByText("7%")).toBeInTheDocument();
-    expect(screen.getByText("No")).toBeInTheDocument();
+    expect(screen.getAllByText("In Stock")[0]).toBeInTheDocument();
+    expect(screen.getByText("Out of Stock")).toBeInTheDocument();
   });
 
   test("renders with custom title", () => {
@@ -67,12 +67,12 @@ describe("ProductTable Component", () => {
   test("handles available/unavailable states correctly", () => {
     render(<ProductTable products={mockProducts} />);
 
-    // We expect to see both "Yes" and "No" for availability
-    const yesElements = screen.getAllByText("Yes");
-    const noElements = screen.getAllByText("No");
+    // We expect to see both "In Stock" and "Out of Stock" for availability
+    const inStockElements = screen.getAllByText("In Stock");
+    const outOfStockElements = screen.getAllByText("Out of Stock");
 
-    expect(yesElements.length).toBe(2); // 2 available products
-    expect(noElements.length).toBe(1); // 1 unavailable product
+    expect(inStockElements.length).toBe(2); // 2 available products
+    expect(outOfStockElements.length).toBe(1); // 1 unavailable product
   });
 
   test('displays "Showing X products" with correct count', () => {

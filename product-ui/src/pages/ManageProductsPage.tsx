@@ -7,264 +7,190 @@ import {
   updateProduct,
   deleteProduct,
 } from "../store/productSlice";
-import { ProductTable } from "../components/ProductTable";
+import { AppDispatch } from "../store";
+import { Product } from "../types";
+import { Container } from "../components/Container";
 import { ProductForm } from "../components/ProductForm";
-import { LoadingSpinner } from "../components/LoadingSpinner";
+import { ProductTable } from "../components/ProductTable";
+import { Modal } from "../components/Modal";
+import { toast } from "react-toastify";
 import { AlertTriangle, Plus, Pencil, Trash2 } from "lucide-react";
-import { Product } from "../types/product";
-import toast from "react-hot-toast";
+import { LoadingSpinner } from "../components/LoadingSpinner";
 
-export const ManageProductsPage: React.FC = () => {
-  const dispatch = useDispatch();
-  const { products, loading, error } = useSelector(
-    (state: RootState) => state.products
-  );
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+export const ManageProductsPage = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  const dispatch = useDispatch<AppDispatch>();
+  const products = useSelector((state: RootState) => state.products.products);
+  const loading = useSelector((state: RootState) => state.products.loading);
+  const error = useSelector((state: RootState) => state.products.error);
 
   useEffect(() => {
     dispatch(fetchProducts());
   }, [dispatch]);
 
-  const handleAddNew = () => {
-    setCurrentProduct(null);
-    setIsFormOpen(true);
-  };
-
-  const handleEdit = (product: Product) => {
-    setCurrentProduct(product);
-    setIsFormOpen(true);
-  };
-
-  const handleCancelForm = () => {
-    setIsFormOpen(false);
-    setCurrentProduct(null);
-  };
-
-  const handleSubmitForm = (product: Product) => {
-    if (currentProduct) {
-      // Update existing product
-      dispatch(updateProduct({ barcode: product.barcode, product }))
-        .unwrap()
-        .then(() => {
-          toast.success("Product updated successfully");
-          setIsFormOpen(false);
-          setCurrentProduct(null);
-        })
-        .catch((error) => {
-          toast.error(`Failed to update product: ${error}`);
-        });
+  const handleOpenModal = (product?: Product) => {
+    if (product) {
+      setIsEditing(true);
+      setSelectedProduct(product);
     } else {
-      // Create new product
-      dispatch(createProduct(product))
-        .unwrap()
-        .then(() => {
-          toast.success("Product created successfully");
-          setIsFormOpen(false);
-        })
-        .catch((error) => {
-          toast.error(`Failed to create product: ${error}`);
-        });
+      setIsEditing(false);
+      setSelectedProduct(null);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setIsEditing(false);
+    setSelectedProduct(null);
+  };
+
+  const handleSubmitForm = async (formData: Omit<Product, "id">) => {
+    setIsLoading(true);
+    try {
+      if (isEditing && selectedProduct) {
+        await dispatch(
+          updateProduct({
+            barcode: selectedProduct.barcode,
+            product: {
+              ...formData,
+              barcode: selectedProduct.barcode,
+            },
+          })
+        ).unwrap();
+        toast.success("Product updated successfully!");
+      } else {
+        await dispatch(createProduct(formData)).unwrap();
+        toast.success("Product created successfully!");
+      }
+
+      // Atualizar a lista de produtos e mostrar feedback visual
+      await dispatch(fetchProducts());
+      setShowFeedback(true);
+      setTimeout(() => setShowFeedback(false), 3000);
+
+      handleCloseModal();
+    } catch (error) {
+      toast.error(
+        isEditing ? "Error updating product" : "Error creating product"
+      );
+      console.error("Error submitting form:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDeleteConfirm = (barcode: string) => {
-    setProductToDelete(barcode);
-    setIsDeleteConfirmOpen(true);
-  };
+  const handleDeleteProduct = async (barcode: string) => {
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      setIsLoading(true);
+      try {
+        await dispatch(deleteProduct(barcode)).unwrap();
+        toast.success("Product deleted successfully!");
 
-  const handleDeleteCancel = () => {
-    setIsDeleteConfirmOpen(false);
-    setProductToDelete(null);
-  };
-
-  const handleDeleteProduct = () => {
-    if (productToDelete) {
-      dispatch(deleteProduct(productToDelete))
-        .unwrap()
-        .then(() => {
-          toast.success("Product deleted successfully");
-          setIsDeleteConfirmOpen(false);
-          setProductToDelete(null);
-        })
-        .catch((error) => {
-          toast.error(`Failed to delete product: ${error}`);
-        });
+        // Atualizar a lista de produtos
+        await dispatch(fetchProducts());
+        setShowFeedback(true);
+        setTimeout(() => setShowFeedback(false), 3000);
+      } catch (error) {
+        toast.error("Error deleting product");
+        console.error("Error deleting product:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-2">
-            Manage Products
-          </h1>
-          <p className="text-gray-400">
-            Add, edit, or remove products from the inventory.
-          </p>
-        </div>
+    <Container>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-white">Manage Products</h2>
         <button
-          onClick={handleAddNew}
-          className="btn btn-primary px-4 py-2"
-          disabled={isFormOpen}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          onClick={() => handleOpenModal()}
         >
-          <Plus className="h-4 w-4 mr-2" />
           Add New Product
         </button>
       </div>
 
-      {isFormOpen && (
-        <div className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700 my-6">
-          <h2 className="text-xl font-semibold text-white mb-4">
-            {currentProduct ? "Edit Product" : "Add New Product"}
-          </h2>
-          <ProductForm
-            product={currentProduct || undefined}
-            onSubmit={handleSubmitForm}
-            onCancel={handleCancelForm}
-            isLoading={loading}
+      {loading && !isLoading ? (
+        <div className="text-center py-12">
+          <div className="spinner"></div>
+          <p className="mt-4 text-gray-400">Loading products...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 bg-red-900/20 rounded-lg">
+          <h3 className="text-xl font-semibold text-red-500">
+            Failed to load products
+          </h3>
+          <p className="text-gray-400 mt-2">{error}</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <ProductTable
+            products={products}
+            title="Product List"
+            showUpdatedStatus={showFeedback}
           />
-        </div>
-      )}
 
-      {isDeleteConfirmOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-6 shadow-lg max-w-md w-full">
+          <div className="mt-10">
             <h3 className="text-xl font-semibold text-white mb-4">
-              Confirm Deletion
+              Product Actions
             </h3>
-            <p className="text-gray-300 mb-6">
-              Are you sure you want to delete this product? This action cannot
-              be undone.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={handleDeleteCancel}
-                className="btn btn-outline px-4 py-2"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteProduct}
-                className="btn btn-destructive px-4 py-2"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {loading && !isFormOpen && (
-        <LoadingSpinner message="Loading products..." />
-      )}
-
-      {error && (
-        <div className="bg-red-900/30 border border-red-800 rounded-md p-4 flex items-start mt-6">
-          <AlertTriangle className="text-red-500 mr-3 h-5 w-5 mt-0.5" />
-          <div>
-            <h3 className="text-red-500 font-medium">Error</h3>
-            <p className="text-red-400 mt-1 text-sm">{error}</p>
-          </div>
-        </div>
-      )}
-
-      {!loading && !error && (
-        <div className="mt-6">
-          {products.length === 0 ? (
-            <div className="text-gray-400 italic">
-              No products available in the inventory.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-800 text-left">
-                    <th className="px-4 py-3 text-gray-300 font-medium">
-                      Barcode
-                    </th>
-                    <th className="px-4 py-3 text-gray-300 font-medium">
-                      Name
-                    </th>
-                    <th className="px-4 py-3 text-gray-300 font-medium">
-                      Category
-                    </th>
-                    <th className="px-4 py-3 text-gray-300 font-medium">
-                      Price
-                    </th>
-                    <th className="px-4 py-3 text-gray-300 font-medium">
-                      Discount
-                    </th>
-                    <th className="px-4 py-3 text-gray-300 font-medium">
-                      Available
-                    </th>
-                    <th className="px-4 py-3 text-gray-300 font-medium">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((product) => (
-                    <tr
-                      key={product.barcode}
-                      className="border-t border-gray-700 hover:bg-gray-800/50"
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {products.map((product) => (
+                <div
+                  key={product.barcode}
+                  className={`bg-gray-800 p-4 rounded-lg ${
+                    showFeedback && product.barcode === selectedProduct?.barcode
+                      ? "border-2 border-blue-500"
+                      : ""
+                  }`}
+                >
+                  <h4 className="text-lg font-medium text-white">
+                    {product.name}
+                  </h4>
+                  <p className="text-gray-400 text-sm">
+                    Barcode: {product.barcode}
+                  </p>
+                  <div className="mt-4 flex space-x-2">
+                    <button
+                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                      onClick={() => handleOpenModal(product)}
+                      disabled={isLoading}
                     >
-                      <td className="px-4 py-3 text-gray-300">
-                        {product.barcode}
-                      </td>
-                      <td className="px-4 py-3 text-white font-medium">
-                        {product.name}
-                      </td>
-                      <td className="px-4 py-3 text-gray-300">
-                        {product.category}
-                      </td>
-                      <td className="px-4 py-3 text-gray-300">
-                        ${product.price.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-gray-300">
-                        {product.discount}%
-                      </td>
-                      <td className="px-4 py-3 text-gray-300">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            product.available
-                              ? "bg-green-900/30 text-green-400"
-                              : "bg-red-900/30 text-red-400"
-                          }`}
-                        >
-                          {product.available ? "Yes" : "No"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleEdit(product)}
-                            className="p-1 text-primary-400 hover:text-primary-300 transition-colors"
-                            title="Edit"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteConfirm(product.barcode)}
-                            className="p-1 text-red-400 hover:text-red-300 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      Edit
+                    </button>
+                    <button
+                      className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                      onClick={() => handleDeleteProduct(product.barcode)}
+                      disabled={isLoading}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
         </div>
       )}
-    </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={isEditing ? "Edit Product" : "Add New Product"}
+      >
+        <ProductForm
+          initialData={selectedProduct}
+          onSubmit={handleSubmitForm}
+          isLoading={isLoading}
+        />
+      </Modal>
+    </Container>
   );
 };

@@ -2,6 +2,8 @@ package com.productapi.service;
 
 import com.productapi.model.Product;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -16,6 +18,8 @@ import javax.annotation.PostConstruct;
 @Service
 public class ProductServiceImpl implements ProductService {
     
+    private static final Logger log = LoggerFactory.getLogger(ProductServiceImpl.class);
+    
     // In-memory product list for demo purposes
     private List<Product> products = new ArrayList<>();
     
@@ -24,13 +28,22 @@ public class ProductServiceImpl implements ProductService {
      */
     @PostConstruct
     public void init() {
-        // Adding sample products
-        products.add(new Product("74001755", "Ball Gown", "Full Body Outfits", 3548, 7, 1));
-        products.add(new Product("74002423", "Shawl", "Accessories", 758, 12, 1));
-        products.add(new Product("74003512", "Leather Jacket", "Outerwear", 2250, 5, 1));
-        products.add(new Product("74004298", "Cotton T-Shirt", "Tops", 450, 0, 1));
-        products.add(new Product("74005123", "Denim Jeans", "Bottoms", 1200, 10, 0));
-        products.add(new Product("74006789", "Silk Scarf", "Accessories", 890, 15, 1));
+        if (products.isEmpty()) {
+            log.info("Inicializando lista de produtos in-memory como fallback devido a falha de conexão com MongoDB");
+            
+            // Produtos disponíveis
+            products.add(new Product("74001755", "Ball Gown", "Full Body Outfits", 3548, 7, 1));
+            products.add(new Product("74001756", "Summer Dress", "Full Body Outfits", 2500, 5, 1));
+            products.add(new Product("74001757", "Winter Coat", "Outerwear", 4000, 10, 1));
+            products.add(new Product("74002423", "Silk Scarf", "Accessories", 890, 15, 1));
+            products.add(new Product("74003512", "Leather Jacket", "Outerwear", 2250, 5, 1));
+            products.add(new Product("74004298", "Cotton T-Shirt", "Casual Wear", 450, 0, 1));
+            
+            // Produtos não disponíveis
+            products.add(new Product("74005123", "Denim Jeans", "Casual Wear", 1200, 10, 0));
+            products.add(new Product("74006789", "Wool Sweater", "Winter Collection", 1750, 12, 0));
+            products.add(new Product("74007890", "Designer Sunglasses", "Accessories", 1580, 8, 0));
+        }
     }
     
     @Override

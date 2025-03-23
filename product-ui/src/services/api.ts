@@ -2,9 +2,12 @@ import axios from "axios";
 import { Product } from "../types";
 import { ProductAdapter } from "../utils/productAdapter";
 
+// Accessing the API directly by address and port
+const API_BASE_URL = "http://localhost:8080";
+
 // Create an axios instance with default configuration
 export const api = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -20,6 +23,77 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// API functions exported individually for test compatibility
+export async function getProducts() {
+  return api.get("/products").then((response) => {
+    return {
+      status: response.status,
+      data: ProductAdapter.toFrontendList(response.data),
+    };
+  });
+}
+
+export async function getProductByBarcode(barcode: string) {
+  return api.get(`/products/${barcode}`).then((response) => {
+    return {
+      status: response.status,
+      data: ProductAdapter.toFrontend(response.data),
+    };
+  });
+}
+
+export async function createProduct(product: Product) {
+  const backendProduct = ProductAdapter.toBackend(product);
+  return api.post("/products", backendProduct).then((response) => {
+    return {
+      status: response.status,
+      data: ProductAdapter.toFrontend(response.data),
+    };
+  });
+}
+
+export async function updateProduct(product: Product) {
+  const backendProduct = ProductAdapter.toBackend(product);
+  return api
+    .put(`/products/${product.barcode}`, backendProduct)
+    .then((response) => {
+      return {
+        status: response.status,
+        data: ProductAdapter.toFrontend(response.data),
+      };
+    });
+}
+
+export async function deleteProduct(barcode: string) {
+  return api.delete(`/products/${barcode}`).then((response) => {
+    return {
+      status: response.status,
+      data: response.data,
+    };
+  });
+}
+
+export async function getProductsByPriceRange(
+  minPrice: number,
+  maxPrice: number
+) {
+  return api.get(`/filter/price/${minPrice}/${maxPrice}`).then((response) => {
+    return {
+      status: response.status,
+      data: ProductAdapter.toFrontendList(response.data),
+    };
+  });
+}
+
+export async function getSortedProductNames() {
+  return api.get("/sort/price").then((response) => {
+    return {
+      status: response.status,
+      data: response.data,
+    };
+  });
+}
 
 // API service methods
 export const apiService = {

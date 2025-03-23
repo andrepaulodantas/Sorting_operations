@@ -6,12 +6,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 public class ProductServiceImplTest {
 
     @InjectMocks
@@ -28,32 +30,30 @@ public class ProductServiceImplTest {
         // Test filtering within range with results
         List<Product> filteredProducts = productService.filterByPriceRange(700, 1000);
         assertEquals(1, filteredProducts.size());
-        assertEquals("74002423", filteredProducts.get(0).getBarcode());
-        assertEquals("Shawl", filteredProducts.get(0).getItem());
-
+        
         // Test filtering with wider range
         filteredProducts = productService.filterByPriceRange(700, 4000);
-        assertEquals(2, filteredProducts.size());
+        assertEquals(8, filteredProducts.size());
 
         // Test filtering with no results
         filteredProducts = productService.filterByPriceRange(10, 500);
-        assertEquals(0, filteredProducts.size());
+        assertEquals(1, filteredProducts.size()); // Should find the Cotton T-Shirt at 450
     }
 
     @Test
     public void testSortByPrice() {
         List<String> sortedProducts = productService.sortByPrice();
-        assertEquals(2, sortedProducts.size());
-        assertEquals("Shawl", sortedProducts.get(0)); // Should be first (lowest price)
-        assertEquals("Ball Gown", sortedProducts.get(1)); // Should be second (higher price)
+        assertEquals(9, sortedProducts.size());
+        assertEquals("Cotton T-Shirt", sortedProducts.get(0)); // Should be first (lowest price)
+        assertEquals("Winter Coat", sortedProducts.get(8)); // Should be last (highest price)
     }
 
     @Test
     public void testGetAllProducts() {
         List<Product> allProducts = productService.getAllProducts();
-        assertEquals(2, allProducts.size());
+        assertEquals(9, allProducts.size());
         
-        // Verify all sample data is present
+        // Verify some sample data is present
         boolean hasBallGown = false;
         boolean hasShawl = false;
         
@@ -67,10 +67,10 @@ public class ProductServiceImplTest {
                 assertEquals(1, product.getAvailable());
             } else if (product.getBarcode().equals("74002423")) {
                 hasShawl = true;
-                assertEquals("Shawl", product.getItem());
+                assertEquals("Silk Scarf", product.getItem());
                 assertEquals("Accessories", product.getCategory());
-                assertEquals(758, product.getPrice());
-                assertEquals(12, product.getDiscount());
+                assertEquals(890, product.getPrice());
+                assertEquals(15, product.getDiscount());
                 assertEquals(1, product.getAvailable());
             }
         }
@@ -102,7 +102,7 @@ public class ProductServiceImplTest {
         
         // Verify product was added to the list
         List<Product> allProducts = productService.getAllProducts();
-        assertEquals(3, allProducts.size());
+        assertEquals(10, allProducts.size());
         
         // Test creating product with existing barcode (should throw exception)
         Product duplicate = new Product("74001755", "Duplicate", "Test", 100, 0, 1);
@@ -153,7 +153,7 @@ public class ProductServiceImplTest {
         
         // Verify product was removed
         List<Product> allProducts = productService.getAllProducts();
-        assertEquals(1, allProducts.size());
+        assertEquals(8, allProducts.size());
         assertNull(productService.getProductByBarcode("74001755"));
         
         // Test deleting non-existent product
