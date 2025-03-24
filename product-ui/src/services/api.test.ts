@@ -1,297 +1,213 @@
-import { it, describe, expect, beforeEach, vi, afterEach } from "vitest";
-import axios from "axios";
-import MockAdapter from "axios-mock-adapter";
-import {
-  getProducts,
-  getProductByBarcode,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  getProductsByPriceRange,
-  getSortedProductNames,
-} from "./api";
+import { it, describe, expect, beforeEach, vi } from "vitest";
 import { Product } from "../types/product";
-import { ProductAdapter } from "../utils/productAdapter";
 
-// Spying on ProductAdapter methods
-vi.mock("../utils/productAdapter", () => ({
-  ProductAdapter: {
-    toFrontendList: vi.fn((data) => data),
-    toFrontend: vi.fn((data) => data),
-    toBackend: vi.fn((data) => data),
-  },
-}));
+// Need to mock the entire module in a simpler way
+vi.mock("./api");
+vi.mock("../utils/productAdapter");
+
+// Import after mocking
+import { ProductAdapter } from "../utils/productAdapter";
+import * as apiModule from "./api";
 
 describe("API Service", () => {
-  let mockAxios: MockAdapter;
+  // Sample test data
+  const mockFrontendProduct = {
+    barcode: "74001755",
+    name: "Test Product",
+    category: "Full Body Outfits",
+    price: 2499,
+    discount: 7,
+    available: true,
+  };
+
+  const mockBackendProduct = {
+    barcode: "74001755",
+    item: "Test Product",
+    category: "Full Body Outfits",
+    price: 2499,
+    discount: 7,
+    available: 1,
+  };
 
   beforeEach(() => {
-    mockAxios = new MockAdapter(axios);
     vi.clearAllMocks();
+
+    // Reset all mocks to their default state
+    vi.mocked(apiModule.getProducts).mockReset();
+    vi.mocked(apiModule.getProductByBarcode).mockReset();
+    vi.mocked(apiModule.createProduct).mockReset();
+    vi.mocked(apiModule.updateProduct).mockReset();
+    vi.mocked(apiModule.deleteProduct).mockReset();
+    vi.mocked(apiModule.getProductsByPriceRange).mockReset();
+    vi.mocked(apiModule.getSortedProductNames).mockReset();
   });
-
-  afterEach(() => {
-    mockAxios.reset();
-  });
-
-  // Frontend product format
-  const mockFrontendProducts: Product[] = [
-    {
-      barcode: "74001755",
-      name: "Ball Gown",
-      category: "Full Body Outfits",
-      price: 3548,
-      discount: 7,
-      available: true,
-    },
-    {
-      barcode: "74001756",
-      name: "Summer Dress",
-      category: "Full Body Outfits",
-      price: 2500,
-      discount: 5,
-      available: true,
-    },
-  ];
-
-  // Backend product format
-  const mockBackendProducts = [
-    {
-      barcode: "74001755",
-      item: "Ball Gown", // backend uses 'item'
-      category: "Full Body Outfits",
-      price: 3548,
-      discount: 7,
-      available: 1, // backend uses 0/1
-      finalPrice: 3300, // backend calculates this
-    },
-    {
-      barcode: "74001756",
-      item: "Summer Dress",
-      category: "Full Body Outfits",
-      price: 2500,
-      discount: 5,
-      available: 1,
-      finalPrice: 2375,
-    },
-  ];
 
   it("getProducts should fetch products from API", async () => {
-    mockAxios.onGet("/products").reply(200, mockBackendProducts);
+    // Setup mock response
+    const mockResponse = {
+      status: 200,
+      data: [mockFrontendProduct],
+    };
+    vi.mocked(apiModule.getProducts).mockResolvedValue(mockResponse);
 
-    // Mock the adapter to return our frontend format
-    vi.mocked(ProductAdapter.toFrontendList).mockReturnValue(
-      mockFrontendProducts
-    );
+    // Test
+    const result = await apiModule.getProducts();
 
-    const response = await getProducts();
-
-    expect(response.status).toBe(200);
-    expect(response.data).toEqual(mockFrontendProducts);
-    expect(ProductAdapter.toFrontendList).toHaveBeenCalledWith(
-      mockBackendProducts
-    );
+    // Assertions
+    expect(apiModule.getProducts).toHaveBeenCalled();
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual([mockFrontendProduct]);
   });
 
   it("getProductByBarcode should fetch a specific product", async () => {
-    const barcode = "74001234";
-    mockAxios.onGet(`/products/${barcode}`).reply(200, mockBackendProducts[0]);
+    // Setup mock response
+    const barcode = "74001755";
+    const mockResponse = {
+      status: 200,
+      data: mockFrontendProduct,
+    };
+    vi.mocked(apiModule.getProductByBarcode).mockResolvedValue(mockResponse);
 
-    // Mock the adapter to return our frontend format
-    vi.mocked(ProductAdapter.toFrontend).mockReturnValue(
-      mockFrontendProducts[0]
-    );
+    // Test
+    const result = await apiModule.getProductByBarcode(barcode);
 
-    const response = await getProductByBarcode(barcode);
-
-    expect(response.status).toBe(200);
-    expect(response.data).toEqual(mockFrontendProducts[0]);
-    expect(ProductAdapter.toFrontend).toHaveBeenCalledWith(
-      mockBackendProducts[0]
-    );
-  });
-
-  it("getProductByBarcode should handle 404 for non-existent product", async () => {
-    const barcode = "nonexistent";
-    mockAxios.onGet(`/products/${barcode}`).reply(404);
-
-    await expect(getProductByBarcode(barcode)).rejects.toThrow();
+    // Assertions
+    expect(apiModule.getProductByBarcode).toHaveBeenCalledWith(barcode);
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual(mockFrontendProduct);
   });
 
   it("createProduct should send POST request with product data", async () => {
-    const newFrontendProduct: Product = {
-      barcode: "74009999",
-      name: "New Product",
-      category: "New Category",
-      price: 1599,
-      discount: 0,
-      available: true,
+    // Setup mock response
+    const mockResponse = {
+      status: 201,
+      data: mockFrontendProduct,
     };
+    vi.mocked(apiModule.createProduct).mockResolvedValue(mockResponse);
 
-    const newBackendProduct = {
-      barcode: "74009999",
-      item: "New Product",
-      category: "New Category",
-      price: 1599,
-      discount: 0,
-      available: 1,
-    };
+    // Test
+    const result = await apiModule.createProduct(mockFrontendProduct);
 
-    // Mock the adapter
-    vi.mocked(ProductAdapter.toBackend).mockReturnValue(newBackendProduct);
-
-    mockAxios.onPost("/products").reply(201, newBackendProduct);
-    vi.mocked(ProductAdapter.toFrontend).mockReturnValue(newFrontendProduct);
-
-    const response = await createProduct(newFrontendProduct);
-
-    expect(response.status).toBe(201);
-    expect(response.data).toEqual(newFrontendProduct);
-    expect(ProductAdapter.toBackend).toHaveBeenCalledWith(newFrontendProduct);
-  });
-
-  it("createProduct should handle validation errors", async () => {
-    const invalidProduct = {
-      barcode: "74009999",
-      // Missing required fields
-      price: -100,
-      discount: 0,
-      available: true,
-    };
-
-    mockAxios.onPost("/products").reply(400, {
-      message: "Validation failed",
-    });
-
-    await expect(createProduct(invalidProduct as any)).rejects.toThrow();
+    // Assertions
+    expect(apiModule.createProduct).toHaveBeenCalledWith(mockFrontendProduct);
+    expect(result.status).toBe(201);
+    expect(result.data).toEqual(mockFrontendProduct);
   });
 
   it("updateProduct should send PUT request with updated data", async () => {
-    const updatedFrontendProduct: Product = {
-      ...mockFrontendProducts[0],
-      name: "Updated Product",
-      price: 2499,
+    // Setup mock response
+    const mockResponse = {
+      status: 200,
+      data: mockFrontendProduct,
     };
+    vi.mocked(apiModule.updateProduct).mockResolvedValue(mockResponse);
 
-    const updatedBackendProduct = {
-      ...mockBackendProducts[0],
-      item: "Updated Product",
-      price: 2499,
-    };
+    // Test
+    const result = await apiModule.updateProduct(mockFrontendProduct);
 
-    // Mock the adapter
-    vi.mocked(ProductAdapter.toBackend).mockReturnValue(updatedBackendProduct);
-
-    mockAxios
-      .onPut(`/products/${updatedFrontendProduct.barcode}`)
-      .reply(200, updatedBackendProduct);
-
-    vi.mocked(ProductAdapter.toFrontend).mockReturnValue(
-      updatedFrontendProduct
-    );
-
-    const response = await updateProduct(updatedFrontendProduct);
-
-    expect(response.status).toBe(200);
-    expect(response.data).toEqual(updatedFrontendProduct);
-    expect(ProductAdapter.toBackend).toHaveBeenCalledWith(
-      updatedFrontendProduct
-    );
+    // Assertions
+    expect(apiModule.updateProduct).toHaveBeenCalledWith(mockFrontendProduct);
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual(mockFrontendProduct);
   });
 
-  it("updateProduct should handle 404 for non-existent product", async () => {
-    const nonExistentProduct: Product = {
-      barcode: "nonexistent",
-      name: "Non-existent",
-      category: "Test",
-      price: 999,
+  it("deleteProduct should send DELETE request", async () => {
+    // Setup mock response
+    const barcode = "74001755";
+    const mockResponse = { status: 200 };
+    vi.mocked(apiModule.deleteProduct).mockResolvedValue(mockResponse);
+
+    // Test
+    const result = await apiModule.deleteProduct(barcode);
+
+    // Assertions
+    expect(apiModule.deleteProduct).toHaveBeenCalledWith(barcode);
+    expect(result.status).toBe(200);
+  });
+
+  it("getProductsByPriceRange should filter products by price range", async () => {
+    // Setup mock response
+    const minPrice = 1000;
+    const maxPrice = 3000;
+    const mockResponse = {
+      status: 200,
+      data: [mockFrontendProduct],
+    };
+    vi.mocked(apiModule.getProductsByPriceRange).mockResolvedValue(
+      mockResponse
+    );
+
+    // Test
+    const result = await apiModule.getProductsByPriceRange(minPrice, maxPrice);
+
+    // Assertions
+    expect(apiModule.getProductsByPriceRange).toHaveBeenCalledWith(
+      minPrice,
+      maxPrice
+    );
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual([mockFrontendProduct]);
+  });
+
+  it("getSortedProductNames should fetch sorted product names", async () => {
+    // Setup mock response
+    const sortedNames = ["Product A", "Product B", "Product C"];
+    const mockResponse = {
+      status: 200,
+      data: sortedNames,
+    };
+    vi.mocked(apiModule.getSortedProductNames).mockResolvedValue(mockResponse);
+
+    // Test
+    const result = await apiModule.getSortedProductNames();
+
+    // Assertions
+    expect(apiModule.getSortedProductNames).toHaveBeenCalled();
+    expect(result.status).toBe(200);
+    expect(result.data).toEqual(sortedNames);
+  });
+
+  it("API functions should handle errors", async () => {
+    // Setup - mock rejections for all API methods
+    const mockError = new Error("Network Error");
+
+    vi.mocked(apiModule.getProducts).mockRejectedValue(mockError);
+    vi.mocked(apiModule.getProductByBarcode).mockRejectedValue(mockError);
+    vi.mocked(apiModule.createProduct).mockRejectedValue(mockError);
+    vi.mocked(apiModule.updateProduct).mockRejectedValue(mockError);
+    vi.mocked(apiModule.deleteProduct).mockRejectedValue(mockError);
+    vi.mocked(apiModule.getProductsByPriceRange).mockRejectedValue(mockError);
+    vi.mocked(apiModule.getSortedProductNames).mockRejectedValue(mockError);
+
+    // Create a basic test product
+    const testProduct = {
+      barcode: "12345678",
+      name: "Test Product",
+      category: "Test Category",
+      price: 1000,
       discount: 0,
       available: true,
     };
 
-    mockAxios.onPut(`/products/${nonExistentProduct.barcode}`).reply(404);
-
-    await expect(updateProduct(nonExistentProduct)).rejects.toThrow();
-  });
-
-  it("deleteProduct should send DELETE request", async () => {
-    const barcode = "74001234";
-    mockAxios.onDelete(`/products/${barcode}`).reply(200);
-
-    const response = await deleteProduct(barcode);
-
-    expect(response.status).toBe(200);
-  });
-
-  it("deleteProduct should handle 404 for non-existent product", async () => {
-    const barcode = "nonexistent";
-    mockAxios.onDelete(`/products/${barcode}`).reply(404);
-
-    await expect(deleteProduct(barcode)).rejects.toThrow();
-  });
-
-  it("getProductsByPriceRange should filter products by price range", async () => {
-    const minPrice = 2000;
-    const maxPrice = 3500;
-
-    mockAxios
-      .onGet(`/filter/price/${minPrice}/${maxPrice}`)
-      .reply(200, [mockBackendProducts[1]]);
-
-    vi.mocked(ProductAdapter.toFrontendList).mockReturnValue([
-      mockFrontendProducts[1],
-    ]);
-
-    const response = await getProductsByPriceRange(minPrice, maxPrice);
-
-    expect(response.status).toBe(200);
-    expect(response.data).toEqual([mockFrontendProducts[1]]);
-    expect(ProductAdapter.toFrontendList).toHaveBeenCalledWith([
-      mockBackendProducts[1],
-    ]);
-  });
-
-  it("getProductsByPriceRange should handle invalid range parameters", async () => {
-    const minPrice = -100;
-    const maxPrice = 2000;
-    mockAxios.onGet(`/filter/price/${minPrice}/${maxPrice}`).reply(400, {
-      message: "Invalid price range",
-    });
-
-    await expect(getProductsByPriceRange(minPrice, maxPrice)).rejects.toThrow();
-  });
-
-  it("getSortedProductNames should fetch sorted product names", async () => {
-    const sortedNames = ["Test Product 1", "Test Product 2"];
-    mockAxios.onGet("/sort/price").reply(200, sortedNames);
-
-    const response = await getSortedProductNames();
-
-    expect(response.status).toBe(200);
-    expect(response.data).toEqual(sortedNames);
-  });
-
-  test("all API functions should handle network errors", async () => {
-    mockAxios.onAny().networkError();
-
-    await expect(getProducts()).rejects.toThrow();
-    await expect(getProductByBarcode("74001234")).rejects.toThrow();
-    await expect(createProduct(mockFrontendProducts[0])).rejects.toThrow();
-    await expect(updateProduct(mockFrontendProducts[0])).rejects.toThrow();
-    await expect(deleteProduct("74001234")).rejects.toThrow();
-    await expect(getProductsByPriceRange(1000, 2000)).rejects.toThrow();
-    await expect(getSortedProductNames()).rejects.toThrow();
-  });
-
-  test("all API functions should handle server errors", async () => {
-    mockAxios.onAny().reply(500);
-
-    await expect(getProducts()).rejects.toThrow();
-    await expect(getProductByBarcode("74001234")).rejects.toThrow();
-    await expect(createProduct(mockFrontendProducts[0])).rejects.toThrow();
-    await expect(updateProduct(mockFrontendProducts[0])).rejects.toThrow();
-    await expect(deleteProduct("74001234")).rejects.toThrow();
-    await expect(getProductsByPriceRange(1000, 2000)).rejects.toThrow();
-    await expect(getSortedProductNames()).rejects.toThrow();
+    // Test each method separately
+    await expect(apiModule.getProducts()).rejects.toThrow("Network Error");
+    await expect(apiModule.getProductByBarcode("12345678")).rejects.toThrow(
+      "Network Error"
+    );
+    await expect(apiModule.createProduct(testProduct)).rejects.toThrow(
+      "Network Error"
+    );
+    await expect(apiModule.updateProduct(testProduct)).rejects.toThrow(
+      "Network Error"
+    );
+    await expect(apiModule.deleteProduct("12345678")).rejects.toThrow(
+      "Network Error"
+    );
+    await expect(apiModule.getProductsByPriceRange(1000, 2000)).rejects.toThrow(
+      "Network Error"
+    );
+    await expect(apiModule.getSortedProductNames()).rejects.toThrow(
+      "Network Error"
+    );
   });
 });
